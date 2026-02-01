@@ -6,6 +6,7 @@
 
 import { useState } from "react"
 import { documentService } from "@/lib/api-client"
+import { toast } from "sonner"
 
 interface ExtractionResult {
   documentType: string
@@ -61,12 +62,13 @@ export function useDocumentUpload(): UseDocumentUploadReturn {
   const [extractionResult, setExtractionResult] = useState<ExtractionResult | null>(null)
 
   const handleError = (err: unknown) => {
+    let message = "Une erreur est survenue lors de l'upload"
     if (err instanceof Error) {
-      setError(err.message)
-      console.error("[v0] Document upload error:", err.message)
-    } else {
-      setError("Une erreur est survenue lors de l'upload")
+      message = err.message
+      console.error("[v0] Document upload error:", message)
     }
+    setError(message)
+    toast.error("Erreur d'upload", { description: message })
   }
 
   const uploadAndAnalyze = async (

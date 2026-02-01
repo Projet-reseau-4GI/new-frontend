@@ -38,13 +38,16 @@ export default function HomePage() {
             <span className="text-2xl font-bold tracking-tight text-slate-900">{app_name}</span>
           </div>
 
-          <nav className="hidden md:flex items-center gap-8">
-            <Link href="/about" className="text-sm font-medium text-slate-600 hover:text-blue-600 transition-colors">
+          <nav className="flex items-center gap-4 md:gap-8">
+            <Link
+              href="/about"
+              className="hidden md:block text-sm font-medium text-slate-600 hover:text-blue-600 transition-colors"
+            >
               À propos
             </Link>
             <Button
               asChild
-              className="bg-blue-600 hover:bg-blue-700 text-white rounded-full px-8 shadow-lg shadow-blue-200 transition-all hover:scale-105 active:scale-95 bg-gradient-to-r from-blue-600 to-indigo-600"
+              className="bg-blue-600 hover:bg-blue-700 text-white rounded-full px-4 md:px-8 shadow-lg shadow-blue-200 transition-all hover:scale-105 active:scale-95 bg-gradient-to-r from-blue-600 to-indigo-600"
             >
               <Link href="/login">Connexion</Link>
             </Button>
@@ -55,7 +58,6 @@ export default function HomePage() {
       <main className="flex-1 relative z-10">
         {/* Hero Section */}
         <section className="relative pt-20 pb-32">
-
           <div className="container relative mx-auto px-6">
             <div className="max-w-4xl mx-auto text-center space-y-10">
               <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full text-xs font-bold uppercase tracking-widest bg-blue-50/80 backdrop-blur-sm text-blue-700 border border-blue-100 animate-in fade-in slide-in-from-bottom-4 duration-1000">
@@ -63,7 +65,7 @@ export default function HomePage() {
                 Standard de Sécurité Bancaire
               </div>
 
-              <h1 className="text-6xl md:text-7xl font-extrabold tracking-tight text-slate-900 leading-tight">
+              <h1 className="text-4xl sm:text-5xl md:text-7xl font-extrabold tracking-tight text-slate-900 leading-tight">
                 {hero_title}
               </h1>
 

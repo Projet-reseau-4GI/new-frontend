@@ -37,7 +37,7 @@ export default function AboutPage() {
               <Brain className="w-4 h-4" />
               Intelligence Artificielle de Pointe
             </div>
-            <h1 className="text-5xl md:text-6xl font-extrabold text-slate-900 tracking-tight leading-tight mb-8">
+            <h1 className="text-4xl sm:text-5xl md:text-6xl font-extrabold text-slate-900 tracking-tight leading-tight mb-8">
               La sécurité documentaire <br />
               <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-600 via-indigo-600 to-violet-600">réinventée par l'IA</span>
             </h1>

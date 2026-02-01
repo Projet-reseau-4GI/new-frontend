@@ -29,7 +29,7 @@ export function validatePasswordStrength(password: string): PasswordStrengthResu
     hasUppercase: /[A-Z]/.test(password),
     hasLowercase: /[a-z]/.test(password),
     hasNumber: /\d/.test(password),
-    hasSpecialChar: /[@$!%*?&]/.test(password),
+    hasSpecialChar: /[^a-zA-Z0-9]/.test(password),
   }
 
   const missingRequirements: string[] = []
@@ -47,7 +47,7 @@ export function validatePasswordStrength(password: string): PasswordStrengthResu
     missingRequirements.push("Au moins un chiffre (0-9)")
   }
   if (!requirements.hasSpecialChar) {
-    missingRequirements.push("Au moins un caractère spécial (@$!%*?&)")
+    missingRequirements.push("Au moins un caractère spécial (ex: ! @ # $ % ^ & *)")
   }
 
   const score = Object.values(requirements).filter(Boolean).length

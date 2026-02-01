@@ -17,6 +17,8 @@ import { ShieldCheck, Upload, FileImage, CheckCircle2, XCircle, Info, ArrowRight
 import { cn } from "@/lib/utils"
 import { useDocumentUpload } from "@/hooks/use-document-upload"
 import Loading from "../results/loading"
+import { toast } from "sonner"
+import { smartCompressImage } from "@/lib/image-compression"
 
 /**
  * Composant de la page d'upload.
@@ -37,42 +39,66 @@ export default function UploadPage() {
 
   /**
    * Gère le changement de fichier pour une face donnée.
+   * Compresse automatiquement les images si nécessaire.
    * @param event Événement de changement d'input
    * @param side Face du document (recto ou verso)
    */
-  const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>, side: "front" | "back") => {
-    const file = event.target.files?.[0]
-    if (!file) return
+  const handleFileChange = async (event: React.ChangeEvent<HTMLInputElement>, side: "front" | "back") => {
+    const rawFile = event.target.files?.[0]
+    if (!rawFile) return
 
     const valid_types = ["image/png", "image/jpeg", "image/jpg", "application/pdf"]
-    if (!valid_types.includes(file.type)) {
-      alert("Format non supporté. Utilisez PNG, JPG ou PDF.")
+    if (!valid_types.includes(rawFile.type)) {
+      toast.error("Format de fichier incorrect", { description: "Utilisez PNG, JPG ou PDF." })
       return
     }
 
-    if (file.size > 10 * 1024 * 1024) {
-      alert("Fichier trop volumineux (max 10 Mo).")
-      return
-    }
+    // Gestion du chargement pendant la compression (silencieux)
 
-    if (side === "front") {
-      set_front_file(file)
-      if (file.type !== "application/pdf") {
-        const reader = new FileReader()
-        reader.onload = (e) => set_front_preview(e.target?.result as string)
-        reader.readAsDataURL(file)
-      } else {
-        set_front_preview(null)
+    try {
+      // Compression intelligente si c'est une image
+      let processedFile = rawFile
+      if (rawFile.type.startsWith("image/")) {
+        processedFile = await smartCompressImage(rawFile)
       }
-    } else {
-      set_back_file(file)
-      if (file.type !== "application/pdf") {
-        const reader = new FileReader()
-        reader.onload = (e) => set_back_preview(e.target?.result as string)
-        reader.readAsDataURL(file)
-      } else {
-        set_back_preview(null)
+
+      // Vérification de la taille totale APRES compression
+      // On vise max 10 Mo au total.
+      // Si on a déjà un autre fichier, on l'ajoute.
+      const MAX_TOTAL_SIZE = 10 * 1024 * 1024
+      const otherFileSize = side === "front" ? (back_file?.size || 0) : (front_file?.size || 0)
+
+      if (processedFile.size + otherFileSize > MAX_TOTAL_SIZE) {
+        toast.error("Fichiers trop volumineux", {
+          description: `Même après compression, la taille totale dépasse 10 Mo. Essayez avec des PDF ou des images plus légères.`
+        })
+        return
       }
+
+      // Tout est bon, on met à jour l'état
+      if (side === "front") {
+        set_front_file(processedFile)
+        if (processedFile.type !== "application/pdf") {
+          const reader = new FileReader()
+          reader.onload = (e) => set_front_preview(e.target?.result as string)
+          reader.readAsDataURL(processedFile)
+        } else {
+          set_front_preview(null)
+        }
+      } else {
+        set_back_file(processedFile)
+        if (processedFile.type !== "application/pdf") {
+          const reader = new FileReader()
+          reader.onload = (e) => set_back_preview(e.target?.result as string)
+          reader.readAsDataURL(processedFile)
+        } else {
+          set_back_preview(null)
+        }
+      }
+
+    } catch (err) {
+      console.error("Erreur lors du traitement du fichier:", err)
+      toast.error("Erreur de traitement", { description: "Impossible de traiter ce fichier." })
     }
   }
 
@@ -149,23 +175,12 @@ export default function UploadPage() {
 
       <main className="flex-1 container mx-auto px-6 py-12 max-w-5xl">
         <div className="space-y-12">
-          {error && (
-            <div className="flex items-center gap-3 p-4 rounded-xl bg-red-50 border border-red-100">
-              <AlertCircle className="w-5 h-5 text-red-500 flex-shrink-0" />
-              <p className="text-sm text-red-700">{error}</p>
-              <button
-                onClick={clearError}
-                className="ml-auto text-red-600 hover:text-red-700 text-sm font-medium underline"
-              >
-                Fermer
-              </button>
-            </div>
-          )}
+          {/* Error displayed via toast */}
 
           {/* En-tête de page */}
           <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
             <div className="space-y-2">
-              <h1 className="text-4xl font-extrabold text-slate-900 tracking-tight">Vérification de Pièce</h1>
+              <h1 className="text-3xl md:text-4xl font-extrabold text-slate-900 tracking-tight">Vérification de Pièce</h1>
               <p className="text-slate-500 text-lg">Veuillez soumettre les deux faces de votre document officiel.</p>
             </div>
             <div className="flex items-center gap-3 bg-white p-2 rounded-2xl border border-slate-100 shadow-sm">
@@ -219,7 +234,7 @@ export default function UploadPage() {
                 <CardContent className="p-6">
                   <label
                     className={cn(
-                      "relative flex flex-col items-center justify-center w-full h-80 border-2 border-dashed rounded-2xl cursor-pointer transition-all duration-300",
+                      "relative flex flex-col items-center justify-center w-full h-64 sm:h-80 border-2 border-dashed rounded-2xl cursor-pointer transition-all duration-300",
                       front_file
                         ? "border-blue-600 bg-blue-50/30"
                         : "border-slate-200 bg-slate-50/50 hover:border-blue-400 hover:bg-blue-50/20",
@@ -292,7 +307,7 @@ export default function UploadPage() {
                 <CardContent className="p-6">
                   <label
                     className={cn(
-                      "relative flex flex-col items-center justify-center w-full h-80 border-2 border-dashed rounded-2xl cursor-pointer transition-all duration-300",
+                      "relative flex flex-col items-center justify-center w-full h-64 sm:h-80 border-2 border-dashed rounded-2xl cursor-pointer transition-all duration-300",
                       back_file
                         ? "border-blue-600 bg-blue-50/30"
                         : "border-slate-200 bg-slate-50/50 hover:border-blue-400 hover:bg-blue-50/20",
@@ -337,7 +352,7 @@ export default function UploadPage() {
                         <div className="space-y-1">
                           <p className="text-sm font-bold text-slate-900">Cliquez pour déposer</p>
                           <p className="text-xs text-slate-400 uppercase tracking-tighter">
-                            PNG, JPG ou PDF (max 10 Mo)
+                            PNG, JPG ou PDF (max 10 Mo total)
                           </p>
                         </div>
                       </div>

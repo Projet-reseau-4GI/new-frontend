@@ -15,7 +15,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { ShieldCheck, Mail, Chrome, ArrowLeft, Loader2, AlertCircle } from "lucide-react"
+import { ShieldCheck, Mail, Chrome, ArrowLeft, Loader2, AlertCircle, Eye, EyeOff } from "lucide-react"
 import { useAuth } from "@/hooks/use-auth"
 
 /**
@@ -27,6 +27,7 @@ export default function LoginPage() {
   const { login, isLoading, error, clearError } = useAuth()
   const [user_email, set_user_email] = useState("")
   const [user_password, set_user_password] = useState("")
+  const [show_password, set_show_password] = useState(false)
 
   /**
    * Gère la soumission du formulaire de connexion par e-mail.
@@ -105,12 +106,7 @@ export default function LoginPage() {
             </CardHeader>
 
             <CardContent className="px-8 pb-8 space-y-6">
-              {error && (
-                <div className="flex items-center gap-3 p-4 rounded-xl bg-red-50 border border-red-100">
-                  <AlertCircle className="w-5 h-5 text-red-500 flex-shrink-0" />
-                  <p className="text-sm text-red-700">{error}</p>
-                </div>
-              )}
+              {/* Error displayed via toast */}
 
               <form onSubmit={handleEmailLogin} className="space-y-4">
                 <div className="space-y-2">
@@ -137,20 +133,30 @@ export default function LoginPage() {
                     <Label htmlFor="password" className="text-xs font-bold uppercase tracking-wider text-slate-400">
                       Mot de passe
                     </Label>
-                    <Link href="#" className="text-xs font-medium text-blue-600 hover:underline">
+                    <Link href="/forgot-password" className="text-xs font-medium text-blue-600 hover:underline">
                       Oublié ?
                     </Link>
                   </div>
-                  <Input
-                    id="password"
-                    type="password"
-                    placeholder="••••••••"
-                    value={user_password}
-                    onChange={(e) => set_user_password(e.target.value)}
-                    required
-                    disabled={isLoading}
-                    className="h-12 rounded-xl border-slate-200 focus:border-blue-600 focus:ring-4 focus:ring-blue-100 transition-all bg-white/50 hover:bg-white"
-                  />
+                  <div className="relative">
+                    <Input
+                      id="password"
+                      type={show_password ? "text" : "password"}
+                      placeholder="••••••••"
+                      value={user_password}
+                      onChange={(e) => set_user_password(e.target.value)}
+                      required
+                      disabled={isLoading}
+                      className="h-12 rounded-xl border-slate-200 focus:border-blue-600 focus:ring-4 focus:ring-blue-100 transition-all bg-white/50 hover:bg-white pr-10"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => set_show_password(!show_password)}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-blue-600 transition-colors"
+                      aria-label={show_password ? "Masquer le mot de passe" : "Afficher le mot de passe"}
+                    >
+                      {show_password ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                    </button>
+                  </div>
                 </div>
 
                 <Button

@@ -69,7 +69,17 @@ async function apiRequest<T>(
 
     if (!response.ok) {
       const errorCode = data.code || "UNKNOWN_ERROR"
-      const errorMessage = data.message || `HTTP ${response.status}`
+      let errorMessage = data.message || `Erreur HTTP ${response.status}`
+
+      // Messages d'erreur plus conviviaux pour les status courants
+      if (response.status === 413) {
+        errorMessage = "Le fichier est trop volumineux. La taille totale ne doit pas dépasser 10 Mo."
+      } else if (response.status === 500) {
+        errorMessage = "Une erreur serveur interne est survenue. Veuillez réessayer plus tard."
+      } else if (response.status === 404) {
+        errorMessage = "La ressource demandée est introuvable."
+      }
+
       console.error(`[v0] API Error: ${errorCode} - ${errorMessage}`)
       throw new APIError(response.status, errorCode, errorMessage)
     }
@@ -217,6 +227,25 @@ export const authService = {
     }>("/auth/forgot-password", {
       method: "POST",
       body: JSON.stringify({ email }),
+      withAuth: false,
+    })
+    return response
+  },
+
+  /**
+   * Réinitialiser le mot de passe
+   * POST /api/auth/reset-password
+   */
+  resetPassword: async (data: {
+    email: string
+    code: string
+    newPassword: string
+  }) => {
+    const response = await apiRequest<{
+      message: string
+    }>("/auth/reset-password", {
+      method: "POST",
+      body: JSON.stringify(data),
       withAuth: false,
     })
     return response

@@ -8,6 +8,8 @@
 import { useState } from "react"
 import { authService, APIError } from "@/lib/api-client"
 
+import { toast } from "sonner"
+
 export interface AuthUser {
   id: string
   email: string
@@ -35,12 +37,13 @@ export function useAuth(): UseAuthReturn {
   const [error, setError] = useState<string | null>(null)
 
   const handleError = (err: unknown) => {
+    let message = "Une erreur est survenue"
     if (err instanceof Error) {
-      setError(err.message)
-      console.error("[v0] Auth error:", err.message)
-    } else {
-      setError("Une erreur est survenue")
+      message = err.message
+      console.error("[v0] Auth error:", message)
     }
+    setError(message)
+    toast.error("Erreur d'authentification", { description: message })
   }
 
   const register = async (data: {
@@ -57,7 +60,9 @@ export function useAuth(): UseAuthReturn {
       console.log("[v0] Registration successful")
     } catch (err) {
       if (err instanceof APIError && err.status === 409) {
-        setError("Cette adresse mail est déjà associée à un compte.")
+        const msg = "Cette adresse mail est déjà associée à un compte."
+        setError(msg)
+        toast.error("Inscription impossible", { description: msg })
       } else {
         handleError(err)
       }
@@ -91,7 +96,9 @@ export function useAuth(): UseAuthReturn {
       return response
     } catch (err) {
       if (err instanceof APIError && (err.status === 401 || err.status === 403)) {
-        setError("adresse mail et/ou mot de passe incorrect(s)")
+        const msg = "Adresse mail et/ou mot de passe incorrect(s)"
+        setError(msg)
+        toast.error("Échec de connexion", { description: msg })
       } else {
         handleError(err)
       }

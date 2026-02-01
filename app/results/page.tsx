@@ -28,7 +28,11 @@ import {
   AlertCircle,
   User,
   CreditCard,
-  Loader2
+  Loader2,
+  MapPin,
+  Briefcase,
+  Ruler,
+  Maximize
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { documentService } from "@/lib/api-client"
@@ -112,17 +116,42 @@ function ResultsContent() {
     return type.toUpperCase()
   }
 
-  const get_status = (): "confirmed" | "expired" | "unclear" | "invalid" => {
+  const get_status = (): "confirmed" | "expired" | "unclear" | "unreadable" | "invalid" => {
     if (!result_data) return "invalid"
-    if (result_data.confidenceScore >= 0.5 && result_data.isValid) {
-      return "confirmed"
+
+    // Normalisation du score (gestion camelCase vs snake_case)
+    const rawScore = result_data.confidenceScore ?? (result_data as any).confidence_score
+    const score = typeof rawScore === 'number' ? rawScore : 0
+
+    // Logique stricte demandée :
+    // < 0.2 (20%) -> Illisible
+    if (score < 0.2) {
+      return "unreadable"
     }
-    if (!result_data.isValid) {
-      return "expired"
-    }
-    if (result_data.confidenceScore >= 0.2 && result_data.confidenceScore < 0.5) { 
+
+    // 0.2 - 0.6 (20-60%) -> Incertain
+    if (score >= 0.2 && score < 0.6) {
       return "unclear"
     }
+
+    // > 0.6 (60%) -> Confirmé (Outrepasse les autres indicateurs si le score est très haut)
+    if (score >= 0.6) {
+      return "confirmed"
+    }
+
+    // Fallback standard
+    if (result_data.isValid) {
+      return "confirmed"
+    }
+
+    // Gestion des cas d'erreur
+    if (result_data.expirationDate) {
+      const expiration = new Date(result_data.expirationDate)
+      if (expiration < new Date()) {
+        return "expired"
+      }
+    }
+
     return "invalid"
   }
 
@@ -136,11 +165,11 @@ function ResultsContent() {
   const status_config = {
     confirmed: {
       icon: CheckCircle2,
-      color_class: "text-blue-600",
-      bg_class: "bg-blue-50/80",
-      border_class: "border-blue-200",
+      color_class: "text-emerald-600",
+      bg_class: "bg-emerald-50/80",
+      border_class: "border-emerald-200",
       title: "Identité Confirmée",
-      desc: "L'intelligence artificielle a authentifié ce document avec succès. Toutes les sécurités ont été validées.",
+      desc: "L'authenticité de ce document a été validée avec succès. Toutes les vérifications de sécurité sont conformes.",
       show_details: true,
     },
     expired: {
@@ -156,11 +185,20 @@ function ResultsContent() {
     },
     unclear: {
       icon: AlertTriangle,
-      color_class: "text-amber-500",
-      bg_class: "bg-amber-50/80",
-      border_class: "border-amber-200",
+      color_class: "text-orange-500",
+      bg_class: "bg-orange-50/80",
+      border_class: "border-orange-200",
       title: "Analyse Incertaine",
-      desc: "La qualité de l'image ne permet pas une authentification formelle. Les hologrammes ou le texte sont flous.",
+      desc: "Le document est lisible mais certains éléments sont douteux. Une vérification manuelle est recommandée.",
+      show_details: true,
+    },
+    unreadable: {
+      icon: XCircle,
+      color_class: "text-red-600",
+      bg_class: "bg-red-50/80",
+      border_class: "border-red-200",
+      title: "Document Illisible",
+      desc: "La qualité de l'image est insuffisante (flou, reflets, ou trop sombre). Impossible d'extraire les données avec fiabilité.",
       show_details: false,
     },
     invalid: {
@@ -233,7 +271,7 @@ function ResultsContent() {
                 </div>
 
                 <div className="relative z-10">
-                  <h2 className="text-3xl font-bold text-slate-900 mb-3 tracking-tight">{active_config.title}</h2>
+                  <h2 className="text-2xl md:text-3xl font-bold text-slate-900 mb-3 tracking-tight">{active_config.title}</h2>
                   <div className={cn("px-4 py-1.5 rounded-full border inline-flex items-center gap-2",
                     result_data.confidenceScore > 0.8 ? "bg-emerald-50 border-emerald-200 text-emerald-700" : "bg-amber-50 border-amber-200 text-amber-700"
                   )}>
@@ -324,6 +362,53 @@ function ResultsContent() {
                     </div>
                   </CardContent>
                 </Card>
+
+                {/* Row 3: Complementary Info */}
+                {(result_data.additionalFields?.placeOfBirth || result_data.additionalFields?.occupation || result_data.additionalFields?.sex || result_data.additionalFields?.height) && (
+                  <Card className="glass border-white/60 rounded-[2rem] shadow-lg hover:shadow-xl transition-shadow">
+                    <CardHeader className="pb-2">
+                      <CardTitle className="text-lg font-bold flex items-center gap-2 text-slate-800">
+                        <FileText className="w-5 h-5 text-blue-600" />
+                        Informations Complémentaires
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent className="grid sm:grid-cols-2 gap-4 pt-4">
+                      {result_data.additionalFields.sex && (
+                        <div className="p-4 rounded-2xl bg-slate-50/50 border border-slate-100 space-y-1">
+                          <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400">Sexe</p>
+                          <p className="text-base font-bold text-slate-900">{result_data.additionalFields.sex === "M" ? "Masculin" : result_data.additionalFields.sex === "F" ? "Féminin" : result_data.additionalFields.sex}</p>
+                        </div>
+                      )}
+                      {result_data.additionalFields.height && (
+                        <div className="p-4 rounded-2xl bg-slate-50/50 border border-slate-100 space-y-1">
+                          <div className="flex items-center gap-2 mb-1">
+                            <Ruler className="w-3 h-3 text-slate-400" />
+                            <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400">Taille</p>
+                          </div>
+                          <p className="text-base font-bold text-slate-900">{result_data.additionalFields.height}</p>
+                        </div>
+                      )}
+                      {result_data.additionalFields.placeOfBirth && (
+                        <div className="p-4 rounded-2xl bg-slate-50/50 border border-slate-100 space-y-1 sm:col-span-2">
+                          <div className="flex items-center gap-2 mb-1">
+                            <MapPin className="w-3 h-3 text-slate-400" />
+                            <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400">Lieu de Naissance</p>
+                          </div>
+                          <p className="text-base font-bold text-slate-900">{result_data.additionalFields.placeOfBirth}</p>
+                        </div>
+                      )}
+                      {result_data.additionalFields.occupation && (
+                        <div className="p-4 rounded-2xl bg-slate-50/50 border border-slate-100 space-y-1 sm:col-span-2">
+                          <div className="flex items-center gap-2 mb-1">
+                            <Briefcase className="w-3 h-3 text-slate-400" />
+                            <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400">Profession</p>
+                          </div>
+                          <p className="text-base font-bold text-slate-900">{result_data.additionalFields.occupation}</p>
+                        </div>
+                      )}
+                    </CardContent>
+                  </Card>
+                )}
               </>
             ) : (
               // Error State Actions
@@ -352,21 +437,21 @@ function ResultsContent() {
             {current_status === "confirmed" && (
               <div className="flex gap-4">
                 <Button
-                  asChild
-                  className="flex-1 h-14 rounded-2xl bg-slate-900 hover:bg-slate-800 text-white font-bold shadow-xl transition-all"
-                >
-                  <Link href="/" className="flex items-center justify-center">
-                    <RefreshCw className="mr-2 w-4 h-4" />
-                    Nouvelle Vérification
-                  </Link>
-                </Button>
-                <Button
                   variant="outline"
                   className="flex-1 h-14 rounded-2xl border-2 border-slate-200 hover:border-blue-200 hover:bg-blue-50 text-slate-600 font-bold transition-all"
                   asChild
                 >
                   <Link href="/">
                     Retour au Tableau de Bord
+                  </Link>
+                </Button>
+                <Button
+                  asChild
+                  className="flex-1 h-14 rounded-2xl bg-slate-900 hover:bg-slate-800 text-white font-bold shadow-xl transition-all"
+                >
+                  <Link href="/upload" className="flex items-center justify-center">
+                    <RefreshCw className="mr-2 w-4 h-4" />
+                    Nouvelle Vérification
                   </Link>
                 </Button>
               </div>
