@@ -17,6 +17,7 @@ import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { ShieldCheck, Mail, Chrome, ArrowLeft, Loader2, AlertCircle, Eye, EyeOff } from "lucide-react"
 import { useAuth } from "@/hooks/use-auth"
+import { toast } from "sonner"
 
 /**
  * Composant principal de la page de connexion.
@@ -63,14 +64,25 @@ export default function LoginPage() {
     try {
       // Récupérer l'URL d'authentification Google
       const { authService } = await import("@/lib/api-client")
-      const { authorizationUrl } = await authService.getGoogleAuthUrl()
+      const { url } = await authService.getGoogleAuthUrl()
 
-      if (authorizationUrl) {
+      if (url) {
         // Rediriger vers Google
-        window.location.href = authorizationUrl
+        // IMPORTANT: On modifie le redirect_uri pour pointer vers notre frontend
+        // Assurez-vous que http://localhost:3000/auth/google/callback est ajouté dans Google Cloud Console
+        const frontendCallbackUrl = `${window.location.origin}/auth/google/callback`
+
+        // On remplace l'URI de redirection du backend par celle du frontend
+        // L'URL du backend contient typiquement : &redirect_uri=.../api/auth/google/callback
+        const targetUrl = new URL(url)
+        targetUrl.searchParams.set("redirect_uri", frontendCallbackUrl)
+
+        console.log("[v0] Redirecting to Google Auth:", targetUrl.toString())
+        window.location.href = targetUrl.toString()
       }
     } catch (err) {
       console.error("[v0] Google OAuth failed:", err)
+      toast.error("Erreur de connexion Google", { description: "Impossible d'initier la connexion." })
     }
   }
 

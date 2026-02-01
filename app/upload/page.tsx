@@ -155,7 +155,7 @@ export default function UploadPage() {
     <div className="min-h-screen flex flex-col bg-slate-50 font-sans">
       {/* Navigation haute sophistiquée */}
       <header className="border-b border-slate-100 bg-white/80 backdrop-blur-md sticky top-0 z-50 h-20">
-        <div className="container mx-auto px-6 h-full flex items-center justify-between">
+        <div className="container mx-auto px-4 md:px-6 h-full flex items-center justify-between">
           <Link href="/" className="flex items-center gap-2 font-bold text-xl tracking-tight">
             <ShieldCheck className="w-8 h-8 text-blue-600" />
             <span>VerifID</span>
@@ -173,17 +173,17 @@ export default function UploadPage() {
         </div>
       </header>
 
-      <main className="flex-1 container mx-auto px-6 py-12 max-w-5xl">
+      <main className="flex-1 container mx-auto px-4 md:px-6 py-8 md:py-12 max-w-5xl">
         <div className="space-y-12">
           {/* Error displayed via toast */}
 
           {/* En-tête de page */}
           <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
             <div className="space-y-2">
-              <h1 className="text-3xl md:text-4xl font-extrabold text-slate-900 tracking-tight">Vérification de Pièce</h1>
-              <p className="text-slate-500 text-lg">Veuillez soumettre les deux faces de votre document officiel.</p>
+              <h1 className="text-2xl md:text-4xl font-extrabold text-slate-900 tracking-tight">Vérification de Pièce</h1>
+              <p className="text-slate-500 text-base md:text-lg">Veuillez soumettre les deux faces de votre document officiel.</p>
             </div>
-            <div className="flex items-center gap-3 bg-white p-2 rounded-2xl border border-slate-100 shadow-sm">
+            <div className="flex items-center gap-3 bg-white p-2 rounded-2xl border border-slate-100 shadow-sm self-start md:self-auto">
               <div className="flex -space-x-2">
                 {[1, 2, 3].map((step) => (
                   <div
@@ -210,7 +210,7 @@ export default function UploadPage() {
                   key={type}
                   onClick={() => set_document_type(document_type === type ? "" : type)}
                   className={cn(
-                    "px-4 py-3 rounded-xl border-2 font-semibold transition-all",
+                    "px-4 py-3 rounded-xl border-2 font-semibold transition-all text-sm md:text-base",
                     document_type === type
                       ? "border-blue-600 bg-blue-50 text-blue-700"
                       : "border-slate-200 bg-white text-slate-600 hover:border-blue-400 hover:bg-blue-50/50",
@@ -234,7 +234,7 @@ export default function UploadPage() {
                 <CardContent className="p-6">
                   <label
                     className={cn(
-                      "relative flex flex-col items-center justify-center w-full h-64 sm:h-80 border-2 border-dashed rounded-2xl cursor-pointer transition-all duration-300",
+                      "relative flex flex-col items-center justify-center w-full min-h-[12rem] h-auto aspect-[4/3] sm:h-80 border-2 border-dashed rounded-2xl cursor-pointer transition-all duration-300",
                       front_file
                         ? "border-blue-600 bg-blue-50/30"
                         : "border-slate-200 bg-slate-50/50 hover:border-blue-400 hover:bg-blue-50/20",
@@ -307,7 +307,7 @@ export default function UploadPage() {
                 <CardContent className="p-6">
                   <label
                     className={cn(
-                      "relative flex flex-col items-center justify-center w-full h-64 sm:h-80 border-2 border-dashed rounded-2xl cursor-pointer transition-all duration-300",
+                      "relative flex flex-col items-center justify-center w-full min-h-[12rem] h-auto aspect-[4/3] sm:h-80 border-2 border-dashed rounded-2xl cursor-pointer transition-all duration-300",
                       back_file
                         ? "border-blue-600 bg-blue-50/30"
                         : "border-slate-200 bg-slate-50/50 hover:border-blue-400 hover:bg-blue-50/20",
@@ -372,7 +372,7 @@ export default function UploadPage() {
           </div>
 
           {/* Footer d'action */}
-          <div className="bg-slate-900 rounded-[2.5rem] p-8 md:p-12 flex flex-col md:flex-row items-center justify-between gap-8 shadow-2xl shadow-slate-900/20">
+          <div className="bg-slate-900 rounded-[2rem] md:rounded-[2.5rem] p-6 md:p-12 flex flex-col md:flex-row items-center justify-between gap-6 md:gap-8 shadow-2xl shadow-slate-900/20">
             <div className="space-y-2 text-center md:text-left">
               <div className="inline-flex items-center gap-2 text-blue-400 font-bold text-xs uppercase tracking-widest">
                 <Info className="w-4 h-4" /> Information

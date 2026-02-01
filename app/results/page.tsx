@@ -226,7 +226,7 @@ function ResultsContent() {
   }
 
   return (
-    <main className="flex-1 container mx-auto px-6 py-12 max-w-5xl relative z-10">
+    <main className="flex-1 container mx-auto px-4 md:px-6 py-8 md:py-12 max-w-5xl relative z-10">
       {error_message || !result_data ? (
         <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500 max-w-lg mx-auto mt-20">
           <Card className="border-red-100 bg-red-50/90 backdrop-blur-md shadow-xl">
@@ -260,10 +260,10 @@ function ResultsContent() {
 
                 <div className="relative">
                   <div className={cn(
-                    "w-36 h-36 rounded-full shadow-[0_10px_40px_-10px_rgba(0,0,0,0.1)] flex items-center justify-center relative z-10",
+                    "w-24 h-24 md:w-36 md:h-36 rounded-full shadow-[0_10px_40px_-10px_rgba(0,0,0,0.1)] flex items-center justify-center relative z-10 transition-all",
                     "bg-white"
                   )}>
-                    <StatusIcon className={cn("w-16 h-16", active_config.color_class)} />
+                    <StatusIcon className={cn("w-12 h-12 md:w-16 md:h-16", active_config.color_class)} />
                   </div>
                   {/* Animated Ring */}
                   {/* Removed complex svg for cleaner look, replacing with simple ring */}
@@ -306,7 +306,7 @@ function ResultsContent() {
                       Détails du Document
                     </CardTitle>
                   </CardHeader>
-                  <CardContent className="grid sm:grid-cols-2 gap-4 pt-4">
+                  <CardContent className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-4">
                     <div className="p-4 rounded-2xl bg-slate-50/50 border border-slate-100 space-y-1">
                       <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400">Type de Pièce</p>
                       <p className="text-base font-bold text-slate-900">{format_document_type(result_data.documentType)}</p>
@@ -325,6 +325,15 @@ function ResultsContent() {
                         {format_date(result_data.expirationDate)}
                       </p>
                     </div>
+                    <div className="p-4 rounded-2xl bg-slate-50/50 border border-slate-100 space-y-1">
+                      <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400">Validité Techn.</p>
+                      <div className="flex items-center gap-2">
+                        <div className={cn("w-2 h-2 rounded-full", result_data.isValid ? "bg-emerald-500" : "bg-red-500")} />
+                        <p className={cn("text-sm font-bold", result_data.isValid ? "text-emerald-700" : "text-red-700")}>
+                          {result_data.isValid ? "Valide" : "Invalide"}
+                        </p>
+                      </div>
+                    </div>
                   </CardContent>
                 </Card>
 
@@ -336,7 +345,7 @@ function ResultsContent() {
                       Titulaire
                     </CardTitle>
                   </CardHeader>
-                  <CardContent className="grid sm:grid-cols-2 gap-4 pt-4">
+                  <CardContent className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-4">
                     <div className="sm:col-span-2 p-5 rounded-2xl bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-100 flex items-center gap-4">
                       <div className="w-12 h-12 rounded-full bg-white flex items-center justify-center text-blue-600 shadow-sm font-bold text-xl">
                         {result_data.holderName.charAt(0)}
@@ -372,7 +381,7 @@ function ResultsContent() {
                         Informations Complémentaires
                       </CardTitle>
                     </CardHeader>
-                    <CardContent className="grid sm:grid-cols-2 gap-4 pt-4">
+                    <CardContent className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-4">
                       {result_data.additionalFields.sex && (
                         <div className="p-4 rounded-2xl bg-slate-50/50 border border-slate-100 space-y-1">
                           <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400">Sexe</p>
@@ -435,7 +444,7 @@ function ResultsContent() {
 
             {/* Action Bar (Success) */}
             {current_status === "confirmed" && (
-              <div className="flex gap-4">
+              <div className="flex flex-col sm:flex-row gap-4">
                 <Button
                   variant="outline"
                   className="flex-1 h-14 rounded-2xl border-2 border-slate-200 hover:border-blue-200 hover:bg-blue-50 text-slate-600 font-bold transition-all"
@@ -474,7 +483,7 @@ export default function ResultsPage() {
       </div>
 
       <header className="border-b border-white/20 bg-white/70 backdrop-blur-md h-20 sticky top-0 z-50">
-        <div className="container mx-auto px-6 h-full flex items-center justify-between">
+        <div className="container mx-auto px-4 md:px-6 h-full flex items-center justify-between">
           <Link href="/" className="flex items-center gap-2 font-bold text-xl">
             <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-600 to-indigo-600 flex items-center justify-center shadow-lg shadow-blue-500/20">
               <ShieldCheck className="w-6 h-6 text-white" />

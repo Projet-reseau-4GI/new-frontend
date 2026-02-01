@@ -161,7 +161,7 @@ export const authService = {
    */
   getGoogleAuthUrl: async () => {
     const response = await apiRequest<{
-      authorizationUrl: string
+      url: string
     }>("/auth/google/url", {
       method: "GET",
       withAuth: false,
@@ -174,6 +174,9 @@ export const authService = {
    * POST /api/auth/google/callback
    */
   handleGoogleCallback: async (code: string) => {
+    // On envoie aussi l'URI de redirection utilisée pour que le backend puisse la vérifier auprès de Google
+    const redirectUri = `${window.location.origin}/auth/google/callback`
+
     const response = await apiRequest<{
       message: string
       token: string
@@ -185,7 +188,7 @@ export const authService = {
       }
     }>("/auth/google/callback", {
       method: "POST",
-      body: JSON.stringify({ code }),
+      body: JSON.stringify({ code, redirect_uri: redirectUri }),
       withAuth: false,
     })
 
