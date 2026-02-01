@@ -85,7 +85,7 @@ export default function Loading() {
 
       <footer className="absolute bottom-8 text-center">
         <p className="text-slate-400 text-[10px] font-bold uppercase tracking-[0.2em] animate-pulse">
-          Traitement Sécurisé VérifID
+          Traitement Sécurisé VerifID
         </p>
       </footer>
     </div>

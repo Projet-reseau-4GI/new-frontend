@@ -479,7 +479,7 @@ export default function ResultsPage() {
             <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-600 to-indigo-600 flex items-center justify-center shadow-lg shadow-blue-500/20">
               <ShieldCheck className="w-6 h-6 text-white" />
             </div>
-            <span className="bg-clip-text text-transparent bg-gradient-to-r from-slate-900 to-slate-600">VérifID</span>
+            <span className="bg-clip-text text-transparent bg-gradient-to-r from-slate-900 to-slate-600">VerifID</span>
           </Link>
           <Button variant="ghost" asChild className="text-slate-500 hover:text-blue-600 hover:bg-white/50">
             <Link href="/">Déconnexion</Link>

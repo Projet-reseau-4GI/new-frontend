@@ -14,7 +14,7 @@ import { ShieldCheck, Lock, Zap, ArrowRight, CheckCircle2 } from "lucide-react"
  * Respecte les contraintes de design sophistiqué blanc et bleu.
  */
 export default function HomePage() {
-  const app_name = "VérifID"
+  const app_name = "VerifID"
   const hero_title = "Vérification d'Identité Nouvelle Génération"
 
   return (
