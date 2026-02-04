@@ -144,12 +144,27 @@ function ResultsContent() {
     })
   }
 
-  const get_status = (): "confirmed" | "expired" | "unclear" | "unreadable" | "invalid" => {
-    if (!result_data) return "invalid"
+  const get_status = (): "confirmed" | "expired" | "unclear" | "unreadable" | "invalid" | "not_an_id" => {
+    if (!result_data) return "not_an_id"
+
+    // Vérifier si le type de document est "N/A" ou manquant
+    const is_type_na = !result_data.documentType ||
+      result_data.documentType === "N/A" ||
+      result_data.documentType.toLowerCase().includes("inconnu")
+
+    // Si le type est inconnu ET que les champs principaux sont vides ou N/A
+    if (is_type_na && (!result_data.holderName || result_data.holderName === "N/A")) {
+      return "not_an_id"
+    }
 
     // Normalisation du score (gestion camelCase vs snake_case)
     const rawScore = result_data.confidenceScore ?? (result_data as any).confidence_score
     const score = typeof rawScore === 'number' ? rawScore : 0
+
+    // Nouvelle règle : 0-10% -> Probablement pas une pièce d'identité
+    if (score < 0.1) {
+      return "not_an_id"
+    }
 
     // Logique stricte demandée :
     // < 0.2 (20%) -> Illisible
@@ -243,6 +258,16 @@ function ResultsContent() {
       desc: "Le système a détecté des anomalies majeures. Ce document ne semble pas être authentique.",
       show_details: false,
     },
+    not_an_id: {
+      icon: FileText,
+      color_class: "text-slate-600",
+      bg_class: "bg-slate-50/80",
+      border_class: "border-slate-200",
+      badge: "❓ NON IDENTIFIÉ",
+      title: "Document Non Reconnu",
+      desc: "Le système n'a pas pu identifier ce document comme une pièce d'identité valide (CNI, Passeport ou Permis).",
+      show_details: false,
+    },
   }
 
   const active_config = status_config[current_status]
@@ -260,7 +285,7 @@ function ResultsContent() {
 
   return (
     <main className="flex-1 container mx-auto px-4 md:px-6 py-8 md:py-12 max-w-5xl relative z-10">
-      {error_message || !result_data ? (
+      {error_message ? (
         <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500 max-w-lg mx-auto mt-20">
           <Card className="border-red-100 bg-red-50/90 backdrop-blur-md shadow-xl">
             <CardContent className="pt-6 flex flex-col items-center gap-4 text-center p-8">
@@ -269,13 +294,45 @@ function ResultsContent() {
               </div>
               <div>
                 <h3 className="text-xl font-bold text-slate-900">Erreur de traitement</h3>
-                <p className="text-slate-600 mt-2">{error_message || "Impossible de charger les résultats"}</p>
+                <p className="text-slate-600 mt-2">{error_message}</p>
               </div>
             </CardContent>
           </Card>
           <Button asChild className="w-full h-14 rounded-xl text-lg shadow-lg hover:shadow-xl transition-all bg-white text-slate-900 hover:bg-slate-50 border border-slate-200">
-            <Link href="/upload">Retour à l'accueil</Link>
+            <Link href="/upload">Réessayer</Link>
           </Button>
+        </div>
+      ) : !result_data || current_status === "not_an_id" ? (
+        <div className="space-y-6 animate-in fade-in slide-in-from-bottom-8 duration-700 max-w-2xl mx-auto py-10">
+          <Card className="overflow-hidden shadow-2xl rounded-[2rem] bg-white/60 backdrop-blur-2xl border border-slate-200">
+            <CardContent className="p-12 flex flex-col items-center text-center space-y-8">
+              <div className="w-32 h-32 rounded-full bg-slate-100 flex items-center justify-center shadow-inner">
+                <FileText className="w-16 h-16 text-slate-400" />
+              </div>
+
+              <div className="space-y-4">
+                <div className="inline-flex items-center gap-2 px-6 py-2 rounded-2xl bg-slate-100 border border-slate-200 text-slate-600">
+                  <span className="text-lg font-black tracking-widest uppercase">NON RECONNU</span>
+                </div>
+                <h2 className="text-3xl md:text-4xl font-extrabold text-slate-900 tracking-tight">Ceci n'est pas une pièce d'identité</h2>
+                <p className="text-lg text-slate-600 max-w-md mx-auto leading-relaxed">
+                  {(result_data && (result_data.confidenceScore ?? (result_data as any).confidence_score) < 0.1)
+                    ? "Le document détecté ne semble pas être une pièce d'identité valide. Il s'agit probablement d'un autre type de document."
+                    : "Le document que vous avez téléchargé n'a pas pu être identifié comme une pièce d'identité prise en charge par notre système."
+                  }
+                </p>
+              </div>
+
+              <div className="w-full grid gap-4 pt-6 border-t border-slate-200/50">
+                <Button asChild className="h-14 rounded-2xl bg-blue-600 hover:bg-blue-700 text-white font-bold shadow-xl transition-all">
+                  <Link href="/upload">Réessayer avec un autre document</Link>
+                </Button>
+                <Button variant="outline" asChild className="h-14 rounded-2xl border-2 border-slate-200 hover:bg-slate-50 font-bold transition-all text-slate-600">
+                  <Link href="/">Retour au site</Link>
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
         </div>
       ) : (
         <div className="grid lg:grid-cols-3 gap-8 animate-in fade-in slide-in-from-bottom-8 duration-700">

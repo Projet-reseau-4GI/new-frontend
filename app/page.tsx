@@ -7,7 +7,7 @@
  */
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
-import { ShieldCheck, Lock, Zap, ArrowRight, CheckCircle2 } from "lucide-react"
+import { ShieldCheck, Lock, Zap, ArrowRight, CheckCircle2, Twitter, Facebook, Instagram } from "lucide-react"
 
 /**
  * Composant de la page d'accueil.
@@ -94,13 +94,6 @@ export default function HomePage() {
                   <Link href="/about">Consulter la doc</Link>
                 </Button>
               </div>
-
-              {/* Trust badges */}
-              <div className="pt-20 flex flex-wrap justify-center gap-8 md:gap-16 opacity-40 grayscale group hover:grayscale-0 transition-all duration-700">
-                <div className="flex items-center gap-2 font-bold text-slate-400">ISO 27001</div>
-                <div className="flex items-center gap-2 font-bold text-slate-400">GDPR COMPLIANT</div>
-                <div className="flex items-center gap-2 font-bold text-slate-400">SECURE CLOUD</div>
-              </div>
             </div>
           </div>
         </section>
@@ -159,14 +152,14 @@ export default function HomePage() {
             © {new Date().getFullYear()} {app_name}. Conçu par {app_name} Team.
           </p>
           <div className="flex items-center gap-6">
-            <Link href="#" className="text-slate-400 hover:text-blue-600 transition-colors">
-              X
+            <Link href="#" className="text-slate-400 hover:text-blue-600 transition-colors" title="Twitter / X">
+              <Twitter className="w-5 h-5" />
             </Link>
-            <Link href="#" className="text-slate-400 hover:text-blue-600 transition-colors">
-              Facebook
+            <Link href="#" className="text-slate-400 hover:text-blue-600 transition-colors" title="Facebook">
+              <Facebook className="w-5 h-5" />
             </Link>
-            <Link href="#" className="text-slate-400 hover:text-blue-600 transition-colors">
-              Instagram
+            <Link href="#" className="text-slate-400 hover:text-blue-600 transition-colors" title="Instagram">
+              <Instagram className="w-5 h-5" />
             </Link>
           </div>
         </div>
