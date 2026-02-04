@@ -109,11 +109,39 @@ function ResultsContent() {
 
   // Utilitaire pour formater le type de document
   const format_document_type = (type: string): string => {
+    if (!type) return "Document Inconnu"
     const lower = type.toLowerCase()
     if (lower.includes("cni") || lower.includes("carte") || lower.includes("id")) return "Carte Nationale d'Identité"
     if (lower.includes("passport") || lower.includes("passeport")) return "Passeport"
     if (lower.includes("permis") || lower.includes("license")) return "Permis de Conduire"
     return type.toUpperCase()
+  }
+
+  /**
+   * Met en surbrillance les caractères suspects (mélange lettres/chiffres)
+   */
+  const highlightSuspicious = (text: string) => {
+    if (!text) return text
+
+    // Regex pour identifier les caractères souvent confondus dans un contexte mixte
+    // Ex: Un '0' au milieu de lettres, ou un 'O' au milieu de chiffres
+    const parts = text.split(/([01582GZSOB])/)
+
+    return parts.map((part, i) => {
+      const isSuspicious = /[01582GZSOB]/.test(part)
+      if (isSuspicious) {
+        return (
+          <span
+            key={i}
+            className="bg-amber-100 text-amber-900 px-0.5 rounded border border-amber-200 cursor-help"
+            title="Caractère potentiellement ambigu"
+          >
+            {part}
+          </span>
+        )
+      }
+      return part
+    })
   }
 
   const get_status = (): "confirmed" | "expired" | "unclear" | "unreadable" | "invalid" => {
@@ -168,6 +196,7 @@ function ResultsContent() {
       color_class: "text-emerald-600",
       bg_class: "bg-emerald-50/80",
       border_class: "border-emerald-200",
+      badge: "✔ VALIDE",
       title: "Identité Confirmée",
       desc: "L'authenticité de ce document a été validée avec succès. Toutes les vérifications de sécurité sont conformes.",
       show_details: true,
@@ -177,6 +206,7 @@ function ResultsContent() {
       color_class: "text-amber-500",
       bg_class: "bg-amber-50/80",
       border_class: "border-amber-200",
+      badge: "⚠ À VÉRIFIER",
       title: "Document Expiré",
       desc: result_data
         ? `Ce document a expiré le ${new Date(result_data.expirationDate).toLocaleDateString("fr-FR")}. Sa validité ne peut être garantie.`
@@ -188,6 +218,7 @@ function ResultsContent() {
       color_class: "text-orange-500",
       bg_class: "bg-orange-50/80",
       border_class: "border-orange-200",
+      badge: "⚠ À VÉRIFIER",
       title: "Analyse Incertaine",
       desc: "Le document est lisible mais certains éléments sont douteux. Une vérification manuelle est recommandée.",
       show_details: true,
@@ -197,6 +228,7 @@ function ResultsContent() {
       color_class: "text-red-600",
       bg_class: "bg-red-50/80",
       border_class: "border-red-200",
+      badge: "❌ INVALIDE",
       title: "Document Illisible",
       desc: "La qualité de l'image est insuffisante (flou, reflets, ou trop sombre). Impossible d'extraire les données avec fiabilité.",
       show_details: false,
@@ -206,6 +238,7 @@ function ResultsContent() {
       color_class: "text-red-600",
       bg_class: "bg-red-50/80",
       border_class: "border-red-200",
+      badge: "❌ INVALIDE",
       title: "Authentification Échouée",
       desc: "Le système a détecté des anomalies majeures. Ce document ne semble pas être authentique.",
       show_details: false,
@@ -270,13 +303,22 @@ function ResultsContent() {
                   <div className={cn("absolute -inset-4 rounded-full border-4 border-dashed animate-spin-slow opacity-30", active_config.color_class.replace('text-', 'border-'))} style={{ animationDuration: '10s' }} />
                 </div>
 
-                <div className="relative z-10">
-                  <h2 className="text-2xl md:text-3xl font-bold text-slate-900 mb-3 tracking-tight">{active_config.title}</h2>
-                  <div className={cn("px-4 py-1.5 rounded-full border inline-flex items-center gap-2",
+                <div className="relative z-10 w-full">
+                  <div className={cn("mb-6 px-6 py-2 rounded-2xl border-2 inline-flex items-center gap-2 shadow-sm",
+                    active_config.bg_class,
+                    active_config.border_class,
+                    active_config.color_class
+                  )}>
+                    <span className="text-lg font-black tracking-widest">
+                      {active_config.badge}
+                    </span>
+                  </div>
+                  <h2 className="text-2xl md:text-3xl font-extrabold text-slate-900 mb-2 tracking-tight">{active_config.title}</h2>
+                  <div className={cn("px-4 py-1 rounded-full border inline-flex items-center gap-2",
                     result_data.confidenceScore > 0.8 ? "bg-emerald-50 border-emerald-200 text-emerald-700" : "bg-amber-50 border-amber-200 text-amber-700"
                   )}>
                     <span className="w-2 h-2 rounded-full bg-current" />
-                    <span className="text-sm font-bold uppercase tracking-wider">
+                    <span className="text-xs font-bold uppercase tracking-wider">
                       Confiance: {Math.round(result_data.confidenceScore * 100)}%
                     </span>
                   </div>
@@ -313,7 +355,9 @@ function ResultsContent() {
                     </div>
                     <div className="p-4 rounded-2xl bg-slate-50/50 border border-slate-100 space-y-1">
                       <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400">Numéro de Série</p>
-                      <p className="text-base font-bold text-blue-600 font-mono tracking-wider">{result_data.documentNumber}</p>
+                      <p className="text-base font-bold text-blue-600 font-mono tracking-wider">
+                        {highlightSuspicious(result_data.documentNumber)}
+                      </p>
                     </div>
                     <div className="p-4 rounded-2xl bg-slate-50/50 border border-slate-100 space-y-1">
                       <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400">Délivré le</p>
@@ -352,7 +396,9 @@ function ResultsContent() {
                       </div>
                       <div>
                         <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400">Nom Complet</p>
-                        <p className="text-xl font-bold text-slate-900">{result_data.holderName}</p>
+                        <p className="text-xl font-bold text-slate-900">
+                          {highlightSuspicious(result_data.holderName)}
+                        </p>
                       </div>
                     </div>
                     <div className="p-4 rounded-2xl bg-slate-50/50 border border-slate-100 flex items-center gap-3">

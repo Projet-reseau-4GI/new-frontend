@@ -19,6 +19,7 @@ import { useDocumentUpload } from "@/hooks/use-document-upload"
 import Loading from "../results/loading"
 import { toast } from "sonner"
 import { smartCompressImage } from "@/lib/image-compression"
+import { checkNetworkStability } from "@/lib/network-check"
 
 /**
  * Composant de la page d'upload.
@@ -33,9 +34,10 @@ export default function UploadPage() {
   const [back_file, set_back_file] = useState<File | null>(null)
   const [front_preview, set_front_preview] = useState<string | null>(null)
   const [back_preview, set_back_preview] = useState<string | null>(null)
-  const [document_type, set_document_type] = useState<string>("")
   const [is_loading, set_is_loading] = useState<boolean>(false)
   const [is_submitting, set_is_submitting] = useState<boolean>(false)
+
+
 
   /**
    * Gère le changement de fichier pour une face donnée.
@@ -53,52 +55,46 @@ export default function UploadPage() {
       return
     }
 
-    // Gestion du chargement pendant la compression (silencieux)
+    // Si c'est un PDF, on bypass le recadrage (pas supporté en browser simplement)
+    if (rawFile.type === "application/pdf") {
+      set_front_file(rawFile)
+      set_front_preview(null)
+      if (side === "back") set_back_file(rawFile)
+      return
+    }
 
+    // Tout est bon, on compresse directement
     try {
-      // Compression intelligente si c'est une image
-      let processedFile = rawFile
-      if (rawFile.type.startsWith("image/")) {
-        processedFile = await smartCompressImage(rawFile)
-      }
+      set_is_loading(true)
+      const processedFile = await smartCompressImage(rawFile)
 
-      // Vérification de la taille totale APRES compression
-      // On vise max 10 Mo au total.
-      // Si on a déjà un autre fichier, on l'ajoute.
+      // Vérification de la taille totale (10 Mo)
       const MAX_TOTAL_SIZE = 10 * 1024 * 1024
       const otherFileSize = side === "front" ? (back_file?.size || 0) : (front_file?.size || 0)
 
       if (processedFile.size + otherFileSize > MAX_TOTAL_SIZE) {
         toast.error("Fichiers trop volumineux", {
-          description: `Même après compression, la taille totale dépasse 10 Mo. Essayez avec des PDF ou des images plus légères.`
+          description: "La taille totale dépasse 10 Mo.",
         })
         return
       }
 
-      // Tout est bon, on met à jour l'état
-      if (side === "front") {
-        set_front_file(processedFile)
-        if (processedFile.type !== "application/pdf") {
-          const reader = new FileReader()
-          reader.onload = (e) => set_front_preview(e.target?.result as string)
-          reader.readAsDataURL(processedFile)
+      const reader = new FileReader()
+      reader.onload = (e) => {
+        if (side === "front") {
+          set_front_file(processedFile)
+          set_front_preview(e.target?.result as string)
         } else {
-          set_front_preview(null)
-        }
-      } else {
-        set_back_file(processedFile)
-        if (processedFile.type !== "application/pdf") {
-          const reader = new FileReader()
-          reader.onload = (e) => set_back_preview(e.target?.result as string)
-          reader.readAsDataURL(processedFile)
-        } else {
-          set_back_preview(null)
+          set_back_file(processedFile)
+          set_back_preview(e.target?.result as string)
         }
       }
-
+      reader.readAsDataURL(processedFile)
     } catch (err) {
-      console.error("Erreur lors du traitement du fichier:", err)
-      toast.error("Erreur de traitement", { description: "Impossible de traiter ce fichier." })
+      console.error("Erreur de traitement:", err)
+      toast.error("Erreur", { description: "Impossible de traiter l'image." })
+    } finally {
+      set_is_loading(false)
     }
   }
 
@@ -107,13 +103,20 @@ export default function UploadPage() {
    */
   const handleVerifyProcedure = async () => {
     if (!front_file) return
+    if (!checkNetworkStability()) {
+      toast.error("Connexion instable", {
+        description: "Votre connexion internet semble instable. Veuillez vérifier votre réseau avant de réessayer.",
+      })
+      return
+    }
+
     clearError()
     set_is_submitting(true)
 
     try {
       console.log("[v0] Starting document verification...")
       const response = await uploadAndAnalyze(front_file, {
-        documentType: document_type,
+        documentType: "",
         backFile: back_file || undefined,
       })
 
@@ -198,27 +201,6 @@ export default function UploadPage() {
                 ))}
               </div>
               <span className="text-xs font-bold text-slate-400 pr-2">ÉTAPE 2/3</span>
-            </div>
-          </div>
-
-          {/* Type de document sélection */}
-          <div className="space-y-4">
-            <h3 className="text-sm font-bold uppercase tracking-widest text-slate-400">Type de pièce (optionnel)</h3>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-              {["CNI", "Passeport", "Permis"].map((type) => (
-                <button
-                  key={type}
-                  onClick={() => set_document_type(document_type === type ? "" : type)}
-                  className={cn(
-                    "px-4 py-3 rounded-xl border-2 font-semibold transition-all text-sm md:text-base",
-                    document_type === type
-                      ? "border-blue-600 bg-blue-50 text-blue-700"
-                      : "border-slate-200 bg-white text-slate-600 hover:border-blue-400 hover:bg-blue-50/50",
-                  )}
-                >
-                  {type}
-                </button>
-              ))}
             </div>
           </div>
 
@@ -394,6 +376,7 @@ export default function UploadPage() {
           </div>
         </div>
       </main>
+
     </div>
   )
 }

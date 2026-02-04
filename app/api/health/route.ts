@@ -7,9 +7,9 @@ export async function GET() {
     try {
         console.log('[v0] Waking up backend...')
 
-        // On appelle une route légère et publique pour réveiller le serveur
-        // /api/auth/google/url est parfait car c'est un GET public
-        const response = await fetch(`${BACKEND_URL}/api/auth/google/url`, {
+        // On appelle une route publique pour réveiller le serveur
+        // Utilisation d'un endpoint générique ou public
+        const response = await fetch(`${BACKEND_URL}/api`, {
             method: 'GET',
         })
 

@@ -1,10 +1,4 @@
-/**
- * Client API centralisé pour toutes les communications avec le backend.
- * Utilise les routes proxy Next.js pour contourner les restrictions CORS.
- *
- * @author Thomas Djotio Ndié
- * @date 24.01.26
- */
+import { fetchWithRetry } from "./fetch-with-retry"
 
 const API_BASE_URL = "/api"
 
@@ -60,7 +54,7 @@ async function apiRequest<T>(
   console.log(`[v0] API Request: ${init.method || "GET"} ${endpoint}`)
 
   try {
-    const response = await fetch(url, {
+    const response = await fetchWithRetry(url, {
       ...init,
       headers: requestHeaders,
     })
@@ -69,15 +63,19 @@ async function apiRequest<T>(
 
     if (!response.ok) {
       const errorCode = data.code || "UNKNOWN_ERROR"
-      let errorMessage = data.message || `Erreur HTTP ${response.status}`
+      let errorMessage = data.message
 
-      // Messages d'erreur plus conviviaux pour les status courants
-      if (response.status === 413) {
-        errorMessage = "Le fichier est trop volumineux. La taille totale ne doit pas dépasser 10 Mo."
-      } else if (response.status === 500) {
-        errorMessage = "Une erreur serveur interne est survenue. Veuillez réessayer plus tard."
-      } else if (response.status === 404) {
-        errorMessage = "La ressource demandée est introuvable."
+      // Si pas de message du backend, utiliser des messages génériques
+      if (!errorMessage) {
+        if (response.status === 413) {
+          errorMessage = "Le fichier est trop volumineux. La taille totale ne doit pas dépasser 10 Mo."
+        } else if (response.status === 500) {
+          errorMessage = "Une erreur serveur interne est survenue. Veuillez réessayer plus tard."
+        } else if (response.status === 404) {
+          errorMessage = "La ressource demandée est introuvable."
+        } else {
+          errorMessage = `Erreur HTTP ${response.status}`
+        }
       }
 
       console.error(`[v0] API Error: ${errorCode} - ${errorMessage}`)
@@ -147,60 +145,69 @@ export const authService = {
       withAuth: false,
     })
 
-    // Stocker le token
+    // Stocker le token et l'ID utilisateur
     if (response.token) {
       localStorage.setItem("auth_token", response.token)
+    }
+    if (response.user?.id) {
+      localStorage.setItem("user_id", response.user.id)
     }
 
     return response
   },
 
-  /**
-   * Récupérer l'URL de connexion Google
-   * GET /api/auth/google/url
-   */
-  getGoogleAuthUrl: async () => {
-    const response = await apiRequest<{
-      url: string
-    }>("/auth/google/url", {
-      method: "GET",
-      withAuth: false,
-    })
-    return response
-  },
+
 
   /**
-   * Callback Google après authentification
-   * POST /api/auth/google/callback
+   * Vérifier un code OTP pour l'email
+   * POST /api/auth/verify-email
    */
-  handleGoogleCallback: async (code: string) => {
-    // On envoie aussi l'URI de redirection utilisée pour que le backend puisse la vérifier auprès de Google
-    const redirectUri = `${window.location.origin}/auth/google/callback`
-
+  verifyEmail: async (email: string, code: string) => {
     const response = await apiRequest<{
       message: string
-      token: string
-      user?: {
-        id: string
-        email: string
-        first_name: string
-        last_name: string
-      }
-    }>("/auth/google/callback", {
+      token?: string
+    }>("/auth/verify-email", {
       method: "POST",
-      body: JSON.stringify({ code, redirect_uri: redirectUri }),
+      body: JSON.stringify({ email, code }),
       withAuth: false,
     })
 
     if (response.token) {
       localStorage.setItem("auth_token", response.token)
+      // On tente de récupérer l'ID utilisateur via le service ou le token
+      try {
+        const token = response.token
+        const parts = token.split(".")
+        if (parts.length === 3) {
+          const payload = JSON.parse(atob(parts[1].replace(/-/g, "+").replace(/_/g, "/")))
+          const userId = payload.sub || payload.user_id || payload.id || payload.uid
+          if (userId) localStorage.setItem("user_id", userId)
+        }
+      } catch (e) {
+        console.warn("[v0] Could not auto-extract userId after verification")
+      }
     }
 
     return response
   },
 
   /**
-   * Vérifier un code OTP
+   * Renvoyer le code de vérification
+   * POST /api/auth/resend-verification
+   */
+  resendVerification: async (email: string) => {
+    const response = await apiRequest<{
+      message: string
+    }>("/auth/resend-verification", {
+      method: "POST",
+      body: JSON.stringify({ email }),
+      withAuth: false,
+    })
+    return response
+  },
+
+  /**
+   * Vérifier un code OTP (générique)
    * POST /api/auth/verify-code
    */
   verifyCode: async (email: string, code: string) => {
@@ -215,6 +222,12 @@ export const authService = {
 
     if (response.token) {
       localStorage.setItem("auth_token", response.token)
+      // extraction userId
+      try {
+        const payload = JSON.parse(atob(response.token.split(".")[1].replace(/-/g, "+").replace(/_/g, "/")))
+        const userId = payload.sub || payload.user_id || payload.id || payload.uid
+        if (userId) localStorage.setItem("user_id", userId)
+      } catch (e) { }
     }
 
     return response
@@ -322,18 +335,28 @@ export const documentService = {
     // Récupérer l'ID utilisateur depuis le token JWT
     let userId: string | null = null
     try {
-      // First try to get userId from storage (set after login)
+      // First try to get userId from storage
       userId = localStorage.getItem("user_id")
 
       if (!userId) {
         // Fallback: try to decode from token
         const token = localStorage.getItem("auth_token")
         if (token) {
-          // Décoder le JWT pour extraire le user ID (partie payload)
+          console.log("[v0] Decoding token to find userId...")
           const parts = token.split(".")
           if (parts.length === 3) {
-            const payload = JSON.parse(atob(parts[1]))
-            userId = payload.sub || payload.user_id || payload.id
+            // Support standard Base64 and Base64Url
+            const base64Url = parts[1]
+            const base64 = base64Url.replace(/-/g, "+").replace(/_/g, "/")
+            const jsonPayload = atob(base64)
+            const payload = JSON.parse(jsonPayload)
+
+            userId = payload.sub || payload.user_id || payload.id || payload.uid
+            console.log("[v0] Extracted userId from token:", userId)
+
+            if (userId) {
+              localStorage.setItem("user_id", userId)
+            }
           }
         }
       }
@@ -342,7 +365,8 @@ export const documentService = {
     }
 
     if (!userId) {
-      throw new APIError(401, "NO_USER_ID", "User ID not available. Please login again.")
+      console.error("[v0] No userId found in localStorage or token")
+      throw new APIError(401, "NO_USER_ID", "Session expirée ou invalide. Veuillez vous reconnecter.")
     }
 
     const formData = new FormData()
@@ -372,7 +396,7 @@ export const documentService = {
     console.log("[v0] Uploading document with userId:", userId)
 
     try {
-      const response = await fetch(url, {
+      const response = await fetchWithRetry(url, {
         method: "POST",
         headers: {
           ...(token && { Authorization: `Bearer ${token}` }),

@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Shield, Mail, AlertCircle, Loader2, CheckCircle2 } from "lucide-react"
+import { Shield, Mail, AlertCircle, Loader2, CheckCircle2, Eye, EyeOff } from "lucide-react"
 import { useAuth } from "@/hooks/use-auth"
 import { validatePasswordStrength, getPasswordStrengthColor } from "@/lib/password-validation"
 import { PasswordRequirements } from "@/components/password-requirements"
@@ -22,6 +22,7 @@ export default function SignupPage() {
   const [password, setPassword] = useState("")
   const [successMessage, setSuccessMessage] = useState("")
   const [passwordError, setPasswordError] = useState("")
+  const [showPassword, setShowPassword] = useState(false)
 
   // Valider le mot de passe lors de sa saisie
   const passwordValidation = password ? validatePasswordStrength(password) : null
@@ -57,35 +58,20 @@ export default function SignupPage() {
 
       // Afficher le message de succès
       setSuccessMessage(
-        `Inscription réussie! Redirection vers la page de connexion...`
+        `Inscription presque terminé! Un code de vérification a été envoyé à ${email} pour confirmer l'enregistrement.`
       )
-      console.log("[v0] Registration successful")
+      console.log("[v0] Registration successful, redirecting to OTP verification")
 
-      // Rediriger vers la page de connexion après 2 secondes
+      // Rediriger vers la page de vérification OTP après 2 secondes
       setTimeout(() => {
-        router.push("/login")
+        router.push(`/auth/verify-otp?email=${encodeURIComponent(email)}`)
       }, 2000)
     } catch (err) {
       console.error("[v0] Registration failed:", err)
     }
   }
 
-  const handleGoogleSignup = async () => {
-    clearError()
-    setPasswordError("")
-    console.log("[v0] Initiating Google OAuth signup")
 
-    try {
-      const { authService } = await import("@/lib/api-client")
-      const { authorizationUrl } = await authService.getGoogleAuthUrl()
-
-      if (authorizationUrl) {
-        window.location.href = authorizationUrl
-      }
-    } catch (err) {
-      console.error("[v0] Google OAuth failed:", err)
-    }
-  }
 
   return (
     <div className="min-h-screen flex flex-col bg-gradient-to-br from-blue-50 via-white to-blue-50 relative overflow-hidden">
@@ -180,19 +166,32 @@ export default function SignupPage() {
 
               <div className="space-y-2">
                 <Label htmlFor="password">Mot de passe</Label>
-                <Input
-                  id="password"
-                  type="password"
-                  placeholder="*******"
-                  value={password}
-                  onChange={(e) => {
-                    setPassword(e.target.value)
-                    setPasswordError("")
-                  }}
-                  required
-                  disabled={isLoading}
-                  className="h-12 rounded-xl border-slate-200 focus:border-blue-600 focus:ring-4 focus:ring-blue-100 transition-all bg-white/50"
-                />
+                <div className="relative">
+                  <Input
+                    id="password"
+                    type={showPassword ? "text" : "password"}
+                    placeholder="*******"
+                    value={password}
+                    onChange={(e) => {
+                      setPassword(e.target.value)
+                      setPasswordError("")
+                    }}
+                    required
+                    disabled={isLoading}
+                    className="h-12 rounded-xl border-slate-200 focus:border-blue-600 focus:ring-4 focus:ring-blue-100 transition-all bg-white/50 pr-12"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition-colors p-2"
+                  >
+                    {showPassword ? (
+                      <EyeOff className="w-5 h-5" />
+                    ) : (
+                      <Eye className="w-5 h-5" />
+                    )}
+                  </button>
+                </div>
               </div>
 
               {password && <PasswordRequirements result={passwordValidation} />}
@@ -209,27 +208,7 @@ export default function SignupPage() {
               </Button>
             </form>
 
-            <div className="relative">
-              <div className="absolute inset-0 flex items-center">
-                <span className="w-full border-t border-slate-200" />
-              </div>
-              <div className="relative flex justify-center text-xs uppercase">
-                <span className="bg-white/80 px-2 text-slate-500 backdrop-blur-sm">Ou continuer avec</span>
-              </div>
-            </div>
 
-            <div className="grid grid-cols-1 gap-3">
-              <Button
-                type="button"
-                variant="outline"
-                onClick={handleGoogleSignup}
-                disabled={isLoading}
-                className="w-full h-12 bg-white hover:bg-slate-50 border-slate-200 text-slate-700 font-medium transition-all"
-              >
-                <Mail className="mr-2 h-4 w-4" />
-                Google
-              </Button>
-            </div>
 
             <div className="text-center text-sm text-muted-foreground">
               Vous avez déjà un compte ?{" "}

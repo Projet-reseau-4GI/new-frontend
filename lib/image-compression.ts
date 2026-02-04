@@ -2,11 +2,11 @@
  * Utilitaires pour la compression d'images côté client.
  */
 
-// Options de compression par défaut
-const DEFAULT_MAX_WIDTH = 1920;
-const DEFAULT_MAX_HEIGHT = 1920;
-const DEFAULT_QUALITY = 0.8;
-const MAX_FILE_SIZE_MB = 4.5; // Cible de taille max par fichier (pour laisser de la marge pour le total de 10Mo)
+// Options de compression optimisées pour l'OCR
+const DEFAULT_MAX_WIDTH = 2560; // Haute résolution pour préserver les détails fins
+const DEFAULT_MAX_HEIGHT = 2560;
+const DEFAULT_QUALITY = 0.92; // Qualité supérieure pour éviter les artefacts de bordure
+const MAX_FILE_SIZE_MB = 5.0; // Augmenté pour permettre de meilleures images
 
 /**
  * Compresse une image en redimensionnant et en ajustant la qualité JPEG.
@@ -62,6 +62,14 @@ export async function compressImage(
                     return;
                 }
 
+                // Optimisation de la qualité du rendu
+                ctx.imageSmoothingEnabled = true;
+                ctx.imageSmoothingQuality = 'high';
+
+                // Application de filtres pour améliorer l'OCR (contraste et luminosité)
+                // Ces filtres aident à rendre le texte plus noir et le fond plus blanc
+                ctx.filter = "contrast(1.15) brightness(1.02) saturate(0.9)";
+
                 ctx.drawImage(img, 0, 0, width, height);
 
                 // Conversion en blob/file
@@ -97,27 +105,28 @@ export async function compressImage(
  * Essaye successivement des qualités inférieures si nécessaire.
  */
 export async function smartCompressImage(file: File, targetSizeMB = MAX_FILE_SIZE_MB): Promise<File> {
-    // Pas de compression pour les petits fichiers ou les PDF
-    if (file.size <= targetSizeMB * 1024 * 1024 || !file.type.startsWith('image/')) {
+    // Pas de traitement pour les fichiers non-images (PDF)
+    if (!file.type.startsWith('image/')) {
         return file;
     }
 
-    console.log(`[Compression] Début compression pour ${file.name} (${(file.size / 1024 / 1024).toFixed(2)} MB)`);
+    // On force maintenant le traitement même pour les petits fichiers pour appliquer les filtres d'amélioration OCR
+    console.log(`[Compression] Traitement d'amélioration OCR pour ${file.name} (${(file.size / 1024 / 1024).toFixed(2)} MB)`);
 
     try {
-        // Première passe : redimensionnement simple + qualité 0.8
-        let compressed = await compressImage(file, 0.8);
+        // Première passe : redimensionnement haute qualité
+        let compressed = await compressImage(file, 0.9, 2560, 2560);
 
-        // Si toujours trop gros, on réduit la qualité
+        // Si toujours trop gros, on réduit légèrement
         if (compressed.size > targetSizeMB * 1024 * 1024) {
             console.log(`[Compression] Passe 2 requise pour ${file.name}`);
-            compressed = await compressImage(file, 0.6, 1600, 1600);
+            compressed = await compressImage(file, 0.85, 2048, 2048);
         }
 
-        // Si encore trop gros, on force une qualité basse
+        // Si encore trop gros, on force une limite de sécurité mais en gardant de la netteté
         if (compressed.size > targetSizeMB * 1024 * 1024) {
             console.log(`[Compression] Passe 3 (finale) requise pour ${file.name}`);
-            compressed = await compressImage(file, 0.4, 1280, 1280);
+            compressed = await compressImage(file, 0.75, 1920, 1920);
         }
 
         console.log(`[Compression] Terminé pour ${file.name}. Nouvelle taille: ${(compressed.size / 1024 / 1024).toFixed(2)} MB`);

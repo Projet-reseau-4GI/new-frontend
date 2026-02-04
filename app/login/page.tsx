@@ -15,7 +15,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { ShieldCheck, Mail, Chrome, ArrowLeft, Loader2, AlertCircle, Eye, EyeOff } from "lucide-react"
+import { ShieldCheck, Mail, ArrowLeft, Loader2, AlertCircle, Eye, EyeOff } from "lucide-react"
 import { useAuth } from "@/hooks/use-auth"
 import { toast } from "sonner"
 
@@ -54,37 +54,7 @@ export default function LoginPage() {
     }
   }
 
-  /**
-   * Gère la connexion via Google OAuth.
-   */
-  const handleGoogleLogin = async () => {
-    clearError()
-    console.log("[v0] Initiating Google OAuth flow")
 
-    try {
-      // Récupérer l'URL d'authentification Google
-      const { authService } = await import("@/lib/api-client")
-      const { url } = await authService.getGoogleAuthUrl()
-
-      if (url) {
-        // Rediriger vers Google
-        // IMPORTANT: On modifie le redirect_uri pour pointer vers notre frontend
-        // Assurez-vous que http://localhost:3000/auth/google/callback est ajouté dans Google Cloud Console
-        const frontendCallbackUrl = `${window.location.origin}/auth/google/callback`
-
-        // On remplace l'URI de redirection du backend par celle du frontend
-        // L'URL du backend contient typiquement : &redirect_uri=.../api/auth/google/callback
-        const targetUrl = new URL(url)
-        targetUrl.searchParams.set("redirect_uri", frontendCallbackUrl)
-
-        console.log("[v0] Redirecting to Google Auth:", targetUrl.toString())
-        window.location.href = targetUrl.toString()
-      }
-    } catch (err) {
-      console.error("[v0] Google OAuth failed:", err)
-      toast.error("Erreur de connexion Google", { description: "Impossible d'initier la connexion." })
-    }
-  }
 
   return (
     <div className="min-h-screen flex flex-col bg-gradient-to-br from-blue-50 via-white to-blue-50 relative overflow-hidden font-sans">
@@ -180,27 +150,7 @@ export default function LoginPage() {
                 </Button>
               </form>
 
-              <div className="relative">
-                <div className="absolute inset-0 flex items-center">
-                  <span className="w-full border-t border-slate-100" />
-                </div>
-                <div className="relative flex justify-center text-[10px] uppercase font-bold tracking-[0.2em] text-slate-400">
-                  <span className="bg-white/80 backdrop-blur-sm px-4">Accès rapide</span>
-                </div>
-              </div>
 
-              <div className="grid grid-cols-1 gap-4">
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={handleGoogleLogin}
-                  disabled={isLoading}
-                  className="h-12 rounded-xl border-slate-200 hover:bg-slate-50 hover:border-slate-300 transition-all group bg-white/50"
-                >
-                  <Chrome className="mr-2 h-5 w-5 text-red-500 group-hover:scale-110 transition-transform" />
-                  <span className="text-sm font-semibold">Google</span>
-                </Button>
-              </div>
             </CardContent>
           </Card>
 
