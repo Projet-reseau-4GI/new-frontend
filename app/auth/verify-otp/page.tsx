@@ -56,7 +56,7 @@ function VerifyOtpContent() {
             toast.success("Compte vérifié !", { description: "Votre compte a été activé avec succès." })
 
             setTimeout(() => {
-                router.push("/upload")
+                router.push("/login")
             }, 2000)
         } catch (err) {
             console.error("[v0] OTP verification failed:", err)
