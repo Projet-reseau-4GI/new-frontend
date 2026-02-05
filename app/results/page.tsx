@@ -147,13 +147,32 @@ function ResultsContent() {
   const get_status = (): "confirmed" | "expired" | "unclear" | "unreadable" | "invalid" | "not_an_id" => {
     if (!result_data) return "not_an_id"
 
-    // Vérifier si le type de document est "N/A" ou manquant
-    const is_type_na = !result_data.documentType ||
-      result_data.documentType === "N/A" ||
-      result_data.documentType.toLowerCase().includes("inconnu")
+    // 1. Détection agressive par type de document
+    const raw_type = (result_data.documentType || "").toUpperCase()
+    const is_unknown_type = !raw_type ||
+      raw_type === "N/A" ||
+      raw_type === "UNKNOWN" ||
+      raw_type === "INCONNU" ||
+      raw_type.includes("INCONNU")
 
-    // Si le type est inconnu ET que les champs principaux sont vides ou N/A
-    if (is_type_na && (!result_data.holderName || result_data.holderName === "N/A")) {
+    if (is_unknown_type) {
+      return "not_an_id"
+    }
+
+    // 2. Détection par accumulation de champs manquants (N/A)
+    const critical_fields = [
+      result_data.documentType,
+      result_data.documentNumber,
+      result_data.holderName,
+      result_data.dateOfBirth,
+      result_data.issueDate,
+      result_data.expirationDate
+    ]
+
+    const na_count = critical_fields.filter(f => !f || f === "N/A" || f === "UNKNOWN").length
+
+    // Si plus de la moitié des champs critiques sont N/A, ce n'est probablement pas une pièce d'identité
+    if (na_count >= 3) {
       return "not_an_id"
     }
 
@@ -161,12 +180,12 @@ function ResultsContent() {
     const rawScore = result_data.confidenceScore ?? (result_data as any).confidence_score
     const score = typeof rawScore === 'number' ? rawScore : 0
 
-    // Nouvelle règle : 0-10% -> Probablement pas une pièce d'identité
+    // 3. Score de confiance extrêmement bas
     if (score < 0.1) {
       return "not_an_id"
     }
 
-    // Logique stricte demandée :
+    // Logique standard demandée :
     // < 0.2 (20%) -> Illisible
     if (score < 0.2) {
       return "unreadable"
