@@ -21,6 +21,7 @@ export class APIError extends Error {
  */
 interface RequestOptions extends RequestInit {
   withAuth?: boolean
+  timeout?: number
 }
 
 /**
@@ -370,25 +371,37 @@ export const documentService = {
     }
 
     const formData = new FormData()
-    formData.append("frontFile", file)
-    formData.append("userId", userId)
 
+    // 1. Front File (Premier comme dans le curl)
+    const frontBlob = file.slice(0, file.size, file.type)
+    const frontExt = file.type.split('/')[1] || 'jpg'
+    const frontName = `front_document_${Date.now()}.${frontExt}`
+    formData.append("frontFile", frontBlob, frontName)
+    console.log("[v0] FormData: Added frontFile (1/4)", frontName)
+
+    // 2. Back File (Deuxième comme dans le curl)
     if (options?.backFile) {
-      formData.append("backFile", options.backFile)
+      const backBlob = options.backFile.slice(0, options.backFile.size, options.backFile.type)
+      const backExt = options.backFile.type.split('/')[1] || 'jpg'
+      const backName = `back_document_${Date.now()}.${backExt}`
+      formData.append("backFile", backBlob, backName)
+      console.log("[v0] FormData: Added backFile (2/4)", backName)
     }
 
+    // 3. Piece Type (Troisième comme dans le curl, même si vide)
+    let typeToSend = ""
     if (options?.documentType) {
-      let typeToSend = options.documentType
-      const lower = options.documentType.toLowerCase()
-
-      // Try mapping to standard uppercase ENUM style
-      if (lower.includes("passeport")) typeToSend = "PASSPORT"
-      else if (lower.includes("cni") || lower.includes("carte")) typeToSend = "CNI" // CNI often kept as is or ID_CARD
-      else if (lower.includes("permis")) typeToSend = "DRIVER_LICENSE"
-
-      console.log(`[v0] Mapping document type '${options.documentType}' to '${typeToSend}'`)
-      formData.append("pieceType", typeToSend)
+      const lower = options.documentType.toLowerCase().trim()
+      if (lower.includes("pass") || lower === "passport") typeToSend = "PASSPORT"
+      else if (lower.includes("cni") || lower.includes("carte") || lower.includes("id")) typeToSend = "CNI"
+      else if (lower.includes("permis") || lower.includes("driv")) typeToSend = "PERMIS"
     }
+    formData.append("pieceType", typeToSend)
+    console.log("[v0] FormData: Added pieceType (3/4)", `"${typeToSend}"`)
+
+    // 4. User ID (Dernier comme dans le curl)
+    formData.append("userId", userId)
+    console.log("[v0] FormData: Added userId (4/4)", userId)
 
     const url = `${API_BASE_URL}/documents/upload-analyze`
     const token = localStorage.getItem("auth_token")
@@ -402,6 +415,7 @@ export const documentService = {
           ...(token && { Authorization: `Bearer ${token}` }),
         },
         body: formData,
+        timeout: 300000, // 5 minutes (Backend OCR can be slow)
       })
 
       const data = await response.json().catch(() => ({}))
@@ -413,8 +427,33 @@ export const documentService = {
         throw new APIError(response.status, errorCode, errorMessage)
       }
 
-      console.log("[v0] Document uploaded successfully")
-      return data as {
+      console.log("[v0] Document uploaded successfully, raw response:", data)
+
+      // Le backend renvoie une structure avec 'extractedData'
+      // Structure attendue:
+      // {
+      //   id: number,
+      //   documentType: string,
+      //   extractedData: { holderName: string, ... },
+      //   status: string
+      // }
+
+      const extractedData = data.extractedData || data || {}
+
+      return {
+        documentType: data.documentType || options?.documentType || "UNKNOWN",
+        documentNumber: extractedData.documentNumber || "",
+        holderName: extractedData.holderName || "",
+        dateOfBirth: extractedData.dateOfBirth || "",
+        issueDate: extractedData.issueDate || "",
+        expirationDate: extractedData.expirationDate || "",
+        isValid: data.status === "COMPLETED" || data.status === "VALID" || data.isValid === true, // Adapter selon le status réel
+        validationMessage: extractedData.validationMessage || data.validationMessage || (data.status === "COMPLETED" ? "Document valide" : "Document à vérifier"),
+        confidenceScore: data.confidenceScore ?? extractedData.confidenceScore ?? 0.95,
+        hasUncertainty: data.hasUncertainty ?? extractedData.hasUncertainty ?? false,
+        additionalFields: data.additionalFields || extractedData.additionalFields || extractedData, // On garde tout le reste ici
+        rawExtractedText: data.rawExtractedText || extractedData.rawExtractedText || "",
+      } as {
         documentType: string
         documentNumber: string
         holderName: string
@@ -427,7 +466,6 @@ export const documentService = {
         hasUncertainty: boolean
         additionalFields: Record<string, string>
         rawExtractedText: string
-        document_id?: string
       }
     } catch (error) {
       if (error instanceof APIError) {
@@ -444,15 +482,41 @@ export const documentService = {
    * Uploader un document
    * POST /api/documents/upload
    */
-  upload: async (file: File) => {
+  upload: async (file: File, pieceType: string) => {
+    // Récupérer l'ID utilisateur
+    let userId = localStorage.getItem("user_id")
+
+    if (!userId) {
+      // Tentative de récupération via le token
+      try {
+        const token = localStorage.getItem("auth_token")
+        if (token) {
+          const parts = token.split(".")
+          if (parts.length === 3) {
+            const payload = JSON.parse(atob(parts[1].replace(/-/g, "+").replace(/_/g, "/")))
+            userId = payload.sub || payload.user_id || payload.id || payload.uid
+            if (userId) localStorage.setItem("user_id", userId)
+          }
+        }
+      } catch (e) {
+        console.warn("[v0] Could not extract userId from token for upload:", e)
+      }
+    }
+
+    if (!userId) {
+      throw new APIError(401, "NO_USER_ID", "Session expirée ou invalide. Veuillez vous reconnecter.")
+    }
+
     const formData = new FormData()
     formData.append("file", file)
+    formData.append("pieceType", pieceType)
+    formData.append("userId", userId)
 
     const url = `${API_BASE_URL}/documents/upload`
     const token = localStorage.getItem("auth_token")
 
     try {
-      const response = await fetch(url, {
+      const response = await fetchWithRetry(url, {
         method: "POST",
         headers: {
           ...(token && { Authorization: `Bearer ${token}` }),
@@ -467,14 +531,21 @@ export const documentService = {
       }
 
       return data as {
-        document_id: string
-        document_url: string
+        id: string
+        pieceType: string
+        fileName: string
+        fileSize: number
+        userId: string
+        fileType: string
+        uploadDate: string
+        status: string
       }
     } catch (error) {
       if (error instanceof APIError) {
         throw error
       }
-      throw new APIError(0, "NETWORK_ERROR", "Upload failed")
+      const message = error instanceof Error ? error.message : "Erreur d'upload"
+      throw new APIError(0, "NETWORK_ERROR", message)
     }
   },
 

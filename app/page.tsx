@@ -39,12 +39,12 @@ export default function HomePage() {
           </div>
 
           <nav className="flex items-center gap-4 md:gap-8">
-            <Link
-              href="/about"
-              className="hidden md:block text-sm font-medium text-slate-600 hover:text-blue-600 transition-colors"
+            <Button
+              asChild
+              className="hidden md:flex bg-slate-950 hover:bg-slate-900 text-white rounded-full px-8 shadow-lg transition-all hover:scale-105 active:scale-95"
             >
-              À propos
-            </Link>
+              <Link href="/about">À propos</Link>
+            </Button>
             <Button
               asChild
               className="bg-blue-600 hover:bg-blue-700 text-white rounded-full px-4 md:px-8 shadow-lg shadow-blue-200 transition-all hover:scale-105 active:scale-95 bg-gradient-to-r from-blue-600 to-indigo-600"
@@ -85,14 +85,6 @@ export default function HomePage() {
                     <ArrowRight className="w-5 h-5" />
                   </Link>
                 </Button>
-                <Button
-                  variant="outline"
-                  size="lg"
-                  asChild
-                  className="h-14 px-10 text-lg rounded-full border-slate-200 hover:bg-slate-50 transition-all bg-transparent"
-                >
-                  <Link href="/about">Consulter la doc</Link>
-                </Button>
               </div>
             </div>
           </div>
@@ -105,7 +97,7 @@ export default function HomePage() {
               {[
                 {
                   title: "Vérification Rapide",
-                  desc: "Analyse OCR et biométrique en moins de 2 minutes pour une expérience utilisateur fluide.",
+                  desc: "Analyse OCR et biométrique en moins d'une minute pour une expérience utilisateur fluide.",
                   icon: Zap,
                   color: "bg-amber-50 text-amber-600",
                 },

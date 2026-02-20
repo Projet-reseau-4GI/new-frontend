@@ -54,6 +54,9 @@ export interface ExtractionResult {
   rawExtractedText: string
 }
 
+export type DocumentAnalysisResponse = ExtractionResult
+
+
 export interface Document {
   id: string
   user_id: string

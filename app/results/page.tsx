@@ -72,9 +72,7 @@ function ResultsContent() {
         return
       }
 
-      // Simuler un léger délai pour voir l'animation (optionnel, retirer en prod si nécessaire)
-      // await new Promise(r => setTimeout(r, 2000))
-
+      // 1. Tenter de récupérer depuis sessionStorage (Flow Principal Stateless)
       try {
         const cached_data = sessionStorage.getItem(`extraction_${document_id}`)
         if (cached_data) {
@@ -84,20 +82,39 @@ function ResultsContent() {
           set_is_loading(false)
           return
         }
+      } catch (e) {
+        console.error("Error parsing session data", e)
+      }
 
-        console.log("[v0] Fetching document details for:", document_id)
+      // 2. Si pas en cache, vérifier si c'est un ID temporaire (doc_...)
+      // Si oui, cela signifie que la session a expiré (refresh page)
+      if (document_id.startsWith("doc_")) {
+        console.warn("[v0] Temporary ID not found in cache -> Session Expired")
+        set_error_message("Session expirée. Veuillez re-télécharger votre document.")
+        set_is_loading(false)
+        return
+      }
+
+      // 3. Si c'est un UUID (potentiellement un vrai ID backend), tenter le fetch
+      // Fallback pour compatibilité future ou autres flows
+      try {
+        console.log("[v0] Fetching document details from backend for:", document_id)
         const response = await documentService.getDetails(document_id)
 
         if (response && response.extraction_result) {
-          // Mapping automatique si nécessaire, mais on suppose que le backend renvoie la bonne structure
           set_result_data(response.extraction_result as unknown as VerificationResult)
-          console.log("[v0] Document details loaded successfully")
+          console.log("[v0] Document details loaded successfully from backend")
         } else {
-          set_error_message("Résultat d'extraction non disponible (peut-être en cours de traitement)")
+          set_error_message("Résultat d'extraction non disponible")
         }
       } catch (err) {
-        const message = err instanceof Error ? err.message : "Erreur lors de la récupération des résultats"
-        set_error_message(message)
+        // Message spécifique si 404
+        if (err instanceof Error && err.message.includes("404")) {
+          set_error_message("Document introuvable ou expiré.")
+        } else {
+          const message = err instanceof Error ? err.message : "Erreur lors de la récupération des résultats"
+          set_error_message(message)
+        }
         console.error("[v0] Error fetching document:", err)
       } finally {
         set_is_loading(false)
@@ -232,7 +249,7 @@ function ResultsContent() {
       border_class: "border-emerald-200",
       badge: "✔ VALIDE",
       title: "Identité Confirmée",
-      desc: "L'authenticité de ce document a été validée avec succès. Toutes les vérifications de sécurité sont conformes.",
+      desc: "L'authenticité de ce document a été validée avec succès.",
       show_details: true,
     },
     expired: {
@@ -240,12 +257,12 @@ function ResultsContent() {
       color_class: "text-amber-500",
       bg_class: "bg-amber-50/80",
       border_class: "border-amber-200",
-      badge: "⚠ À VÉRIFIER",
+      badge: "⚠ EXPIRÉE",
       title: "Document Expiré",
       desc: result_data
-        ? `Ce document a expiré le ${new Date(result_data.expirationDate).toLocaleDateString("fr-FR")}. Sa validité ne peut être garantie.`
+        ? `Ce document a expiré le ${new Date(result_data.expirationDate).toLocaleDateString("fr-FR")}. Ce n'est plus une pièce d'identité valide.`
         : "Document expiré",
-      show_details: true,
+      show_details: false,
     },
     unclear: {
       icon: AlertTriangle,
@@ -486,10 +503,6 @@ function ResultsContent() {
                     </div>
                     <div className="p-4 rounded-2xl bg-slate-50/50 border border-slate-100 flex items-center gap-3">
                       <Fingerprint className="w-4 h-4 text-slate-400" />
-                      <div>
-                        <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400">Données Bio.</p>
-                        <p className="text-sm font-bold text-emerald-600">Extraites avec succès</p>
-                      </div>
                     </div>
                   </CardContent>
                 </Card>

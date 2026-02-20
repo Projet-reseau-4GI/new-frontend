@@ -14,11 +14,7 @@ import { Loader2, ShieldCheck, Scan, FileSearch, Lock } from "lucide-react"
 import { cn } from "@/lib/utils"
 
 const loading_steps = [
-  { text: "Initialisation de la vérification...", icon: ShieldCheck },
   { text: "Analyse du document en cours...", icon: Scan },
-  { text: "Extraction des données biométriques...", icon: FileSearch },
-  { text: "Vérification de sécurité...", icon: Lock },
-  { text: "Finalisation du rapport...", icon: Loader2 },
 ]
 
 export default function Loading() {

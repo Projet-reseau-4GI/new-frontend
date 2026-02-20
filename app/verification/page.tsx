@@ -26,7 +26,6 @@ export default function VerificationPage() {
     { label: "Extraction des données OCR", icon: Search },
     { label: "Analyse biométrique faciale", icon: Database },
     { label: "Contrôle de conformité officielle", icon: ShieldCheck },
-    { label: "Génération du rapport sécurisé", icon: Lock },
   ]
 
   useEffect(() => {

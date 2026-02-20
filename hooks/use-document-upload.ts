@@ -36,7 +36,6 @@ interface UploadResponse {
   hasUncertainty: boolean
   additionalFields: Record<string, string>
   rawExtractedText: string
-  document_id?: string
 }
 
 interface UseDocumentUploadReturn {
@@ -102,8 +101,10 @@ export function useDocumentUpload(): UseDocumentUploadReturn {
         rawExtractedText: response.rawExtractedText,
       })
 
-      // Générer un document_id si pas fourni par le backend
-      const docId = response.document_id || `doc_${Date.now()}`
+      // Générer un ID temporaire pour le frontend car le backend est stateless
+      // Mais si le backend renvoie un ID, on l'utilise
+      const rawResponse = response as any
+      const docId = rawResponse.document_id || rawResponse.id || rawResponse.documentId || `doc_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`
       setDocumentId(docId)
 
       console.log("[v0] Document analysis complete, document_id:", docId)

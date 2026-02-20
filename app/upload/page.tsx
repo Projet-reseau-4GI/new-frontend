@@ -47,6 +47,7 @@ export default function UploadPage() {
    */
   const handleFileChange = async (event: React.ChangeEvent<HTMLInputElement>, side: "front" | "back") => {
     const rawFile = event.target.files?.[0]
+    console.log(`[v0] File selected for ${side}:`, rawFile?.name, rawFile?.size)
     if (!rawFile) return
 
     const valid_types = ["image/png", "image/jpeg", "image/jpg", "application/pdf"]
@@ -57,9 +58,13 @@ export default function UploadPage() {
 
     // Si c'est un PDF, on bypass le recadrage (pas supporté en browser simplement)
     if (rawFile.type === "application/pdf") {
-      set_front_file(rawFile)
-      set_front_preview(null)
-      if (side === "back") set_back_file(rawFile)
+      console.log(`[v0] Processing PDF for ${side}`)
+      if (side === "front") {
+        set_front_file(rawFile)
+        set_front_preview(null)
+      } else {
+        set_back_file(rawFile)
+      }
       return
     }
 
@@ -67,6 +72,7 @@ export default function UploadPage() {
     try {
       set_is_loading(true)
       const processedFile = await smartCompressImage(rawFile)
+      console.log(`[v0] File processed for ${side}:`, processedFile.name, processedFile.size)
 
       // Vérification de la taille totale (10 Mo)
       const MAX_TOTAL_SIZE = 10 * 1024 * 1024
@@ -88,6 +94,7 @@ export default function UploadPage() {
           set_back_file(processedFile)
           set_back_preview(e.target?.result as string)
         }
+        console.log(`[v0] State updated for ${side}`)
       }
       reader.readAsDataURL(processedFile)
     } catch (err) {
@@ -120,13 +127,21 @@ export default function UploadPage() {
         backFile: back_file || undefined,
       })
 
-      // Générer un ID unique ou utiliser celui du backend
-      const documentId = response.document_id || `doc_${Date.now()}`
+      console.log("[v0] API Response:", response)
+
+      // Adaptation robuste pour récupérer l'ID selon ce que renvoie le backend (id ou document_id)
+      // Le backend semble renvoyer 'id' dans certains cas et 'document_id' dans d'autres
+      const rawResponse = response as any
+      const documentId = rawResponse.document_id || rawResponse.id || rawResponse.documentId || `doc_${Date.now()}`
+
+      if (!documentId || documentId.toString().startsWith("doc_")) {
+        console.warn("[v0] Warning: Using temporary ID because backend accepted upload but returned no clear ID")
+      }
 
       // Stocker les résultats d'extraction en sessionStorage pour transmission vers la page de résultats
       sessionStorage.setItem(`extraction_${documentId}`, JSON.stringify(response))
 
-      console.log("[v0] Document uploaded, document_id:", documentId)
+      console.log("[v0] Document uploaded, transitioning to results with ID:", documentId)
 
       // Rediriger vers la page de résultats avec les données
       router.push(`/results?documentId=${documentId}`)

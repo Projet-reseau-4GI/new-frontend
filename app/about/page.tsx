@@ -45,11 +45,11 @@ export default function AboutPage() {
               VerifID n'est pas qu'un simple outil de validation. C'est une forteresse numérique capable de détecter les fraudes les plus sophistiquées en quelques secondes, garantissant l'authenticité de chaque interaction.
             </p>
             <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
-              <Button asChild size="lg" className="h-14 px-8 rounded-full bg-blue-600 hover:bg-blue-700 text-white font-bold shadow-xl hover:shadow-blue-500/25 transition-all text-lg">
-                <Link href="/upload">Commencer une vérification</Link>
-              </Button>
-              <Button asChild size="lg" variant="outline" className="h-14 px-8 rounded-full border-2 border-slate-200 hover:border-blue-200 hover:bg-blue-50 text-slate-700 font-bold transition-all text-lg">
-                <Link href="#how-it-works">Comment ça marche ?</Link>
+              <Button asChild size="lg" className="h-16 px-10 rounded-2xl bg-blue-600 hover:bg-blue-700 text-white font-bold shadow-2xl transition-all hover:scale-105">
+                <Link href="/demo">
+                  Vidéo explicative
+                  <ArrowRight className="ml-2 w-5 h-5" />
+                </Link>
               </Button>
             </div>
           </div>
@@ -70,7 +70,7 @@ export default function AboutPage() {
                 {
                   icon: Zap,
                   title: "Vitesse Éclair",
-                  desc: "Analyse complète en moins de 5 secondes. Ne faites plus attendre vos utilisateurs.",
+                  desc: "Analyse complète en moins d'une minute. Ne faites plus attendre vos utilisateurs.",
                   color: "blue",
                 },
                 {
@@ -82,7 +82,7 @@ export default function AboutPage() {
                 {
                   icon: Lock,
                   title: "Confidentialité Totale",
-                  desc: "Vos données sont chiffrées de bout en bout. Aucune image n'est stockée une fois l'analyse terminée.",
+                  desc: "Vos données sont chiffrées de bout en bout. VerifID n'a accès à aucune information personnelle.",
                   color: "emerald",
                 },
               ].map((feature, i) => (
@@ -109,7 +109,7 @@ export default function AboutPage() {
                     {
                       step: "01",
                       title: "Téléchargement Sécurisé",
-                      desc: "Envoyez une photo de votre pièce d'identité (CNI, Passeport, Permis). Le transfert est chiffré.",
+                      desc: "Envoyez une photo ou un scan de votre pièce d'identité (CNI, Passeport, Permis). Le transfert est chiffré.",
                       icon: FileText
                     },
                     {
@@ -182,11 +182,8 @@ export default function AboutPage() {
             <p className="text-slate-400 text-lg mb-10 max-w-2xl mx-auto">
               Rejoignez les milliers d'utilisateurs qui font confiance à VerifID pour leurs besoins de vérification d'identité.
             </p>
-            <Button asChild size="lg" className="h-16 px-10 rounded-2xl bg-white text-slate-900 hover:bg-blue-50 font-bold text-lg shadow-2xl transition-all hover:scale-105">
-              <Link href="/upload">
-                Lancer une démonstration gratuite
-                <ArrowRight className="ml-2 w-5 h-5" />
-              </Link>
+            <Button asChild size="lg" className="h-14 px-8 rounded-full bg-blue-600 hover:bg-blue-700 text-white font-bold shadow-xl hover:shadow-blue-500/25 transition-all text-lg">
+              <Link href="/login">Commencer une vérification</Link>
             </Button>
           </div>
         </section>
