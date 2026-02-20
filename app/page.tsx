@@ -85,6 +85,15 @@ export default function HomePage() {
                     <ArrowRight className="w-5 h-5" />
                   </Link>
                 </Button>
+                <Button
+                  size="lg"
+                  asChild
+                  className="h-14 px-10 text-lg rounded-full bg-blue-600 hover:bg-blue-700 text-white shadow-xl shadow-blue-600/20 transition-all hover:translate-y-[-2px] hover:scale-105 active:scale-95"
+                >
+                  <Link href="/demo" className="flex items-center gap-2">
+                    Comment ça marche ?
+                  </Link>
+                </Button>
               </div>
             </div>
           </div>
@@ -156,6 +165,6 @@ export default function HomePage() {
           </div>
         </div>
       </footer>
-    </div>
+    </div >
   )
 }
