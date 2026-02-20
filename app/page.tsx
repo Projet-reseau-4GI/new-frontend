@@ -41,7 +41,7 @@ export default function HomePage() {
           <nav className="flex items-center gap-4 md:gap-8">
             <Button
               asChild
-              className="hidden md:flex bg-slate-950 hover:bg-slate-900 text-white rounded-full px-8 shadow-lg transition-all hover:scale-105 active:scale-95"
+              className="flex bg-slate-950 hover:bg-slate-900 text-white rounded-full px-4 md:px-8 shadow-lg transition-all hover:scale-105 active:scale-95"
             >
               <Link href="/about">À propos</Link>
             </Button>
